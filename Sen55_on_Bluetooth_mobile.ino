@@ -18,8 +18,8 @@
 #endif
 
 char ssid[] = "Sampada_4G";
-char pass[] = "Kmsp424@";
-const char* myWriteAPIKey = "PZMYA92OQE5SEZH2";
+char pass[] = "Kailas250@668";
+const char* myWriteAPIKey = "PZMYA92OQE5SEZH3";
 unsigned long myChannelNumber = 2387861;
 const char * fingerprint = SECRET_SHA1_FINGERPRINT;
 

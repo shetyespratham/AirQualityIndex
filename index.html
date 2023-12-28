@@ -21,14 +21,56 @@ tr:nth-child(even) {
 </head>
 <body onload="loadXMLDoc()">
 <script>
+var refDate = " ";
+var nextDate =[];
+var nextDate1 =" ";
+var obj=" ";
+function prevRec() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (xhttp.readyState == 4 && xhttp.status == 200) {
+       obj = JSON.parse(xhttp.responseText); // parse the string into an object
+       showObj();
+    }
+  };
+  xhttp.open("GET", "https://api.thingspeak.com/channels/2387861/feeds.json?api_key=1L6FU85AZ7ZH78RQ&results=2&start=2023-12-23T12:38:17Z&end="+refDate, true);
+  xhttp.send();
+}
+function nextRec() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (xhttp.readyState == 4 && xhttp.status == 200) {
+       obj = JSON.parse(xhttp.responseText); // parse the string into an object
+       showObj();
+       nextDate.pop();
+    }
+  };
+  if (nextDate.length > 1) {
+     nextDate1=nextDate.pop();
+     var nextDate2=nextDate[nextDate.length-1];
+     xhttp.open("GET", "https://api.thingspeak.com/channels/2387861/feeds.json?api_key=1L6FU85AZ7ZH78RQ&results=2&start="+nextDate1+"&end="+nextDate2, true);
+     xhttp.send();
+  }
+}
+function downHist() {
+}
 function loadXMLDoc() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (xhttp.readyState == 4 && xhttp.status == 200) {
-      var obj = JSON.parse(xhttp.responseText); // parse the string into an object
-      var firstObj = obj.feeds[0]; // get the first (and only) object out of the array
+       obj = JSON.parse(xhttp.responseText); // parse the string into an object
+       showObj();
+    }
+  };
+  xhttp.open("GET", "https://api.thingspeak.com/channels/2387861/feeds.json?api_key=1L6FU85AZ7ZH78RQ&results=2", true);
+  xhttp.send();
+}
+function showObj() {
+      var prevObj = obj.feeds[0];
+      var firstObj = obj.feeds[1]; // get the first (and only) object out of the array
       var fld_dt = firstObj.created_at;
-      var userOffset = new Date().getTimezoneOffset()*60*1000;
+      nextDate.push(fld_dt);
+      refDate = prevObj.created_at;
       var localDate = new Date(fld_dt);
       var fld0 = localDate.toString();
       document.getElementById("datetime").innerHTML = "Data acquired on: "+fld0;
@@ -101,16 +143,6 @@ function loadXMLDoc() {
       }								
       document.getElementById("aqi2").innerHTML = aqi2.toFixed(2);
 
-
-    }
-  };
-      // https://api.thingspeak.com/update?api_key=PZMYA92OQE5SEZH2&field1=29.34&field2= 
-      // 64.15&field3=125.09&field4=131.4&field5=135.70&field6=145.10&field7=96.00&field8=3
-
-      // https://api.thingspeak.com/channels/2387861/feeds.json?api_key=   
-      // 1L6FU85AZ7ZH78RQ&start=2011-11-11%2010:10:10&end=2023-12-22%2023:01:01
-  xhttp.open("GET", "https://api.thingspeak.com/channels/2387861/feeds.json?api_key=1L6FU85AZ7ZH78RQ&results=1", true);
-  xhttp.send();
 }
 </script>
 
@@ -177,6 +209,10 @@ function loadXMLDoc() {
   </tr>
 </table>
 <h5> courtesy: Kailas Shetye </h5>
+
+<button onClick="prevRec()">Prev Record</button>
+<button onClick="nextRec()">Next Record</button>
+<br><br>
 
 PM10 : Dust and smoke.  higher level Causes cold, cough, running nose, eyes sting<br>
 People with heart/lung conditions can feel wheezing, chest tightness or difficulty breathing with heavy levels.<br><br>

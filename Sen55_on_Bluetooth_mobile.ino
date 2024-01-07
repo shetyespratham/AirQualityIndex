@@ -18,10 +18,11 @@
 #endif
 
 char ssid[] = "Sampada_4G";
-char pass[] = "Kailas250@668A";
-const char* myWriteAPIKey = "PZMYA92OQE5SEZH3";
+char pass[] = "Kvs123@";
+const char* myWriteAPIKey = "PZMYA92OQE5SEZD2";
 unsigned long myChannelNumber = 2387861;
 const char * fingerprint = SECRET_SHA1_FINGERPRINT;
+unsigned long prevmillis;
 
 SensirionI2CSen5x sen5x;
 WiFiClientSecure client;
@@ -127,25 +128,12 @@ void setup() {
     while (!Serial) {
       ;
     }
+    prevmillis=millis();
     Wire.begin();
     sen5x.begin(Wire);
     WiFi.mode(WIFI_STA);
-//    client.setFingerprint(fingerprint);
-//    client.getFingerprintSHA256(uint8_t *sha256_result);
     client.setCACert(rootCA);
- //   delay(3000);
     ThingSpeak.begin(client);
-    if(WiFi.status() != WL_CONNECTED) {
-      Serial.print("Attempting to connect to SSID: ");
-      Serial.println(ssid);
-      while(WiFi.status() != WL_CONNECTED) {
-        WiFi.begin(ssid, pass);
-        Serial.print(".");
-        delay(15000);
-        Serial.println(WiFi.status());
-      }
-      Serial.println("\nConnected.");
-    }
     uint16_t error;
     char errorMessage[256];
     error = sen5x.deviceReset();
@@ -157,6 +145,8 @@ void setup() {
 
 // Print SEN55 module information if i2c buffers are large enough
 #ifdef USE_PRODUCT_INFO
+    Serial.println("SEN55-SDN-T");
+    Serial.println("Label:251FCD5FDA32C67B");
     printSerialNumber();
     printModuleVersions();
 #endif
@@ -170,7 +160,7 @@ void setup() {
     } else {
         Serial.print("Temperature Offset set to ");
         Serial.print(tempOffset);
-        Serial.println(" deg. Celsius (SEN54/SEN55 only");
+        Serial.println(" deg. Celsius");
     }
 
     // Start Measurement
@@ -180,50 +170,89 @@ void setup() {
         errorToString(error, errorMessage, 256);
         Serial.println(errorMessage);
     }
+    delay(60000);
+    prevmillis=millis();
 }
 
 void loop() {
-    uint16_t error;
-    char errorMessage[256];
+/*    Serial.print("prevMillis");
+    Serial.println(prevmillis);
+    Serial.print("currMillis");
+    Serial.println(millis());
+*/
+    if(millis() > (prevmillis+(10*60*1000))) {  //kvshetye replace 1 with 9
+      prevmillis=millis();
+      if(WiFi.status() != WL_CONNECTED) {
+        Serial.print("Attempting to connect to SSID: ");
+        Serial.println(ssid);
+        while(WiFi.status() != WL_CONNECTED) {
+          WiFi.begin(ssid, pass);
+          Serial.print(".");
+          delay(20000);
+          // Serial.println(WiFi.status());
+        }
+        Serial.println("\nConnected.");
+      }
+        getReadings();
+    }
+    delay(5000);
+}
+void getReadings() {
+      uint16_t error;
+      char errorMessage[256];
+      float massConcentrationPm1p0;
+      float massConcentrationPm2p5;
+      float massConcentrationPm4p0;
+      float massConcentrationPm10p0;
+      float ambientHumidity;
+      float ambientTemperature;
+      float vocIndex;
+      float noxIndex;
 
-    delay(60000);
-
-    // Read Measurement
-    float massConcentrationPm1p0;
-    float massConcentrationPm2p5;
-    float massConcentrationPm4p0;
-    float massConcentrationPm10p0;
-    float ambientHumidity;
-    float ambientTemperature;
-    float vocIndex;
-    float noxIndex;
-
-    error = sen5x.readMeasuredValues(
+      error = sen5x.readMeasuredValues(
         massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
         massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
         noxIndex);
 
-    if (error) {
+      if (error) {
         Serial.print("Error trying to execute readMeasuredValues(): ");
         errorToString(error, errorMessage, 256);
         Serial.println(errorMessage);
-    } else {
+      } else {
+        int nanfound=0;
         if(WiFi.status() == WL_CONNECTED) {
-          ThingSpeak.setField(1, ambientTemperature); //temperature
-          ThingSpeak.setField(2, ambientHumidity); //Humidity
-          ThingSpeak.setField(3, massConcentrationPm2p5); //2.5
-          ThingSpeak.setField(4, massConcentrationPm10p0); //10
-          ThingSpeak.setField(5, massConcentrationPm1p0); //1.0
-          ThingSpeak.setField(6, massConcentrationPm4p0); //4.0
-          ThingSpeak.setField(7, vocIndex); //voc
-          ThingSpeak.setField(8, noxIndex); //nox
-          int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-          // ThingSpeak.writeFields(unsigned long channelNumber, mywriteAPIKey);
-          if(x == 200) {
-            Serial.println("Channel update successful");
-          } else {
-            Serial.println("Problem updating channel");
-            Serial.println(x);
+          if(!isnan(ambientTemperature)) {
+            ThingSpeak.setField(1, ambientTemperature); //temperature
+          } else {nanfound=1;}
+          if(!isnan(ambientHumidity)) {
+            ThingSpeak.setField(2, ambientHumidity); //Humidity
+          } else {nanfound=1;}
+          if(!isnan(massConcentrationPm2p5)) {
+            ThingSpeak.setField(3, massConcentrationPm2p5); //2.5
+          } else {nanfound=1;}
+          if(!isnan(massConcentrationPm10p0)) {
+            ThingSpeak.setField(4, massConcentrationPm10p0); //10
+          } else {nanfound=1;}
+          if(!isnan(massConcentrationPm1p0)) {
+            ThingSpeak.setField(5, massConcentrationPm1p0); //1.0
+          } else {nanfound=1;}
+          if(!isnan(massConcentrationPm4p0)) {
+            ThingSpeak.setField(6, massConcentrationPm4p0); //4.0
+          } else {nanfound=1;}
+          if(!isnan(vocIndex)) {
+            ThingSpeak.setField(7, vocIndex); //voc
+          } else {nanfound=1;}
+          if(!isnan(noxIndex)) {
+            ThingSpeak.setField(8, noxIndex); //nox
+          } else {nanfound=1;}
+          if (nanfound == 0) {
+            int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+            if(x == 200) {
+              Serial.println("Channel update successful");
+            } else {
+              Serial.println("Problem updating channel");
+              Serial.println(x);
+            }
           }
         }
         Serial.print("MassConcentrationPm1p0:");
@@ -265,5 +294,5 @@ void loop() {
         } else {
             Serial.println(noxIndex);
         }
-    }
+      }
 }
